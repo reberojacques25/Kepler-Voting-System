@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}" class="active">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_cohorts' %}" class="btn btn-outline-kepler btn-sm">← Back to Cohorts</a>
+    </div>
+    <div class="kepler-card p-4" style="max-width:480px;">
+      <h1 class="section-title mb-4">{{ action }} Cohort</h1>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="small-muted d-block mb-1">Cohort Name *</label>
+          <input type="text" name="name" class="form-control"
+                 placeholder="e.g. Cohort 4"
+                 value="{{ cohort.name|default:'' }}" required>
+        </div>
+        <div class="mb-4">
+          <label class="small-muted d-block mb-1">Year *</label>
+          <input type="number" name="year" class="form-control"
+                 style="max-width:160px;" placeholder="e.g. 2024"
+                 value="{{ cohort.year|default:'' }}" required>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-kepler">{{ action }} Cohort</button>
+          <a href="{% url 'dashboard:admin_cohorts' %}" class="btn btn-outline-kepler">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

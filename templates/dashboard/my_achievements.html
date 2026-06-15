@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="section-title mb-1">🌟 My Achievements</h1>
+    <div class="small-muted">
+      Submit achievements from your time as an elected leader.
+      Approved ones appear on the public Guild History page.
+    </div>
+  </div>
+  <a href="{% url 'dashboard:student' %}" class="btn btn-outline-kepler btn-sm">← Dashboard</a>
+</div>
+{% for winner in winner_records %}
+<div class="mb-5">
+  <div class="hero p-4 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      {% if winner.candidate.photo %}
+      <img src="{{ winner.candidate.photo.url }}"
+           style="width:56px;height:56px;border-radius:1rem;object-fit:cover;">
+      {% else %}
+      <div class="candidate-avatar">{{ winner.candidate.full_name|first }}</div>
+      {% endif %}
+      <div>
+        <div class="k-pill pill-winner mb-1 d-inline-block">🏆 Elected</div>
+        <div class="fw-700 fs-5">{{ winner.position.title }}</div>
+        <div class="small-muted">{{ winner.election.name }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="kepler-card p-4 mb-3">
+    <div class="section-title mb-3">+ Submit New Achievement</div>
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if 'error' in message.tags %}danger{% else %}success{% endif %} py-2 mb-3">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="winner_id" value="{{ winner.id }}">
+      <div class="mb-3">
+        <label class="form-label small-muted">Achievement Title *</label>
+        <input type="text" name="title" class="form-control"
+               placeholder="e.g. Launched the student welfare fund" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small-muted">Description *</label>
+        <textarea name="description" class="form-control" rows="4"
+                  placeholder="Describe what you achieved and its impact on students..."
+                  required></textarea>
+      </div>
+      <div class="card-blue p-3 rounded-3 mb-3">
+        <div class="small-muted" style="font-size:.82rem;">
+          ℹ️ Your achievement will be reviewed by admin before appearing on the public Guild History page.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-kepler">Submit Achievement</button>
+    </form>
+  </div>
+  {% with achievements=winner.achievements.all %}
+  {% if achievements %}
+  <div class="section-title mb-2">Previous Submissions</div>
+  <div class="row g-2">
+    {% for achievement in achievements %}
+    <div class="col-12">
+      <div class="card-soft p-3 d-flex align-items-start justify-content-between gap-3">
+        <div>
+          <div class="fw-600">{{ achievement.title }}</div>
+          <div class="small-muted" style="font-size:.85rem;line-height:1.6;">
+            {{ achievement.description }}
+          </div>
+          <div class="small-muted mt-1" style="font-size:.78rem;">
+            Submitted {{ achievement.submitted_at|date:"M d, Y" }}
+          </div>
+        </div>
+        <div class="flex-shrink-0">
+          {% if achievement.status == 'pending' %}<span class="k-pill pill-pending">⏳ Pending</span>
+          {% elif achievement.status == 'approved' %}<span class="k-pill pill-approved">✓ Live on History</span>
+          {% else %}<span class="k-pill pill-rejected">✗ Rejected</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+</div>
+{% endfor %}
+{% endblock %}

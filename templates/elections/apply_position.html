@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="mb-3">
+      <a href="{% url 'elections:open_positions' %}"
+         class="btn btn-outline-kepler btn-sm">← Back to Open Positions</a>
+    </div>
+    <div class="kepler-card p-4 p-md-5">
+      <div class="mb-4">
+        <span class="k-pill pill-blue mb-2 d-inline-block">{{ election.name }}</span>
+        <h1 class="fw-800 mb-1" style="font-size:1.6rem;">Apply for {{ position.title }}</h1>
+        {% if position.description %}
+        <p class="small-muted">{{ position.description }}</p>
+        {% endif %}
+      </div>
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-danger py-2 mb-3">{{ message }}</div>
+      {% endfor %}
+      {% endif %}
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label small-muted">
+            Profile Photo
+            <span class="small-muted" style="font-size:.78rem;">(optional)</span>
+          </label>
+          <input type="file" name="photo" class="form-control" accept="image/*">
+          <div class="small-muted mt-1" style="font-size:.78rem;">
+            Clear professional photo. Max 5MB. JPG, PNG or WEBP.
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small-muted">
+            Campaign Slogan
+            <span class="small-muted" style="font-size:.78rem;">(optional)</span>
+          </label>
+          <input type="text" name="slogan" class="form-control"
+                 placeholder="A short memorable slogan" maxlength="200">
+        </div>
+        {% if fields %}
+        <hr class="my-4">
+        <div class="section-title mb-3">Application Questions</div>
+        {% for field in fields %}
+        <div class="mb-3">
+          <label class="form-label small-muted">
+            {{ field.label }}
+            {% if field.is_required %}
+            <span style="color:#c62828;">*</span>
+            {% else %}
+            <span class="small-muted" style="font-size:.78rem;">(optional)</span>
+            {% endif %}
+          </label>
+          {% if field.field_type == 'textarea' %}
+          <textarea name="field_{{ field.id }}" class="form-control" rows="5"
+                    {% if field.is_required %}required{% endif %}
+                    placeholder="{{ field.help_text }}"></textarea>
+          {% elif field.field_type == 'text' %}
+          <input type="text" name="field_{{ field.id }}" class="form-control"
+                 {% if field.is_required %}required{% endif %}
+                 placeholder="{{ field.help_text }}">
+          {% elif field.field_type == 'url' %}
+          <input type="url" name="field_{{ field.id }}" class="form-control"
+                 {% if field.is_required %}required{% endif %}
+                 placeholder="{{ field.help_text|default:'https://' }}">
+          {% elif field.field_type == 'file' %}
+          <input type="file" name="field_{{ field.id }}" class="form-control"
+                 {% if field.is_required %}required{% endif %}>
+          {% endif %}
+          {% if field.help_text and field.field_type != 'text' and field.field_type != 'url' %}
+          <div class="small-muted mt-1" style="font-size:.78rem;">{{ field.help_text }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <hr class="my-4">
+        <div class="mb-3">
+          <label class="form-label small-muted">Why do you want to run for this position? *</label>
+          <textarea name="field_why" class="form-control" rows="4"
+                    placeholder="Explain your motivation..." required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small-muted">Your Full Manifesto *</label>
+          <textarea name="field_manifesto" class="form-control" rows="7"
+                    placeholder="What will you do for students?" required></textarea>
+        </div>
+        {% endif %}
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-kepler">Submit Application</button>
+          <a href="{% url 'elections:open_positions' %}" class="btn btn-outline-kepler">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

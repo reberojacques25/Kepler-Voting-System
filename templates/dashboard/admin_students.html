@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="admin-layout">
+
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}" class="active">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="#">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+
+  <div class="admin-content">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Manage Students</h1>
+        <div class="small-muted">{{ total }} student{{ total|pluralize }} found</div>
+      </div>
+    </div>
+
+    <div class="kepler-card p-3 mb-4">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="small-muted d-block mb-1">Cohort</label>
+          <select name="cohort" class="form-select form-select-sm" style="min-width:150px;">
+            <option value="">All Cohorts</option>
+            {% for cohort in cohorts %}
+            <option value="{{ cohort.id }}"
+              {% if selected_cohort == cohort.id|stringformat:"s" %}selected{% endif %}>
+              {{ cohort.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small-muted d-block mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm" style="min-width:150px;">
+            <option value="">All</option>
+            <option value="verified"   {% if selected_status == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="unverified" {% if selected_status == 'unverified' %}selected{% endif %}>Unverified</option>
+            <option value="blocked"    {% if selected_status == 'blocked' %}selected{% endif %}>Blocked</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-kepler btn-sm">Filter</button>
+        <a href="{% url 'dashboard:admin_students' %}" class="btn btn-outline-kepler btn-sm">Clear</a>
+      </form>
+    </div>
+
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Student ID</th>
+            <th>Cohort</th>
+            <th>Email Verified</th>
+            <th>Cohort Confirmed</th>
+            <th>Can Vote</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr id="row-{{ student.id }}">
+            <td>
+              <div class="fw-600">{{ student.get_full_name|default:student.email }}</div>
+              <div class="small-muted" style="font-size:.8rem;">{{ student.email }}</div>
+            </td>
+            <td><span class="k-pill pill-blue">{{ student.student_id }}</span></td>
+            <td>{{ student.cohort.name|default:"—" }}</td>
+            <td>
+              {% if student.is_email_verified %}
+                <span class="k-pill pill-approved">✓ Verified</span>
+              {% else %}
+                <span class="k-pill pill-rejected">✗ No</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if student.cohort %}
+                {% if student.is_cohort_confirmed %}
+                  <span class="k-pill pill-approved">✓ Confirmed</span>
+                {% else %}
+                  <span class="k-pill pill-pending">Pending</span>
+                {% endif %}
+              {% else %}
+                <span class="small-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if student.can_vote %}
+                <span class="k-pill pill-green">Active</span>
+              {% else %}
+                <span class="k-pill pill-rejected">Blocked</span>
+              {% endif %}
+            </td>
+            <td class="small-muted">{{ student.date_joined|date:"M d, Y" }}</td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if not student.is_email_verified %}
+                <button class="btn btn-outline-kepler btn-sm"
+                        onclick="toggleStudent({{ student.id }}, 'verify')">
+                  Verify Email
+                </button>
+                {% endif %}
+                {% if student.cohort %}
+                  {% if not student.is_cohort_confirmed %}
+                  <button class="btn btn-green btn-sm"
+                          onclick="toggleStudent({{ student.id }}, 'confirm_cohort')">
+                    Confirm {{ student.cohort.name }}
+                  </button>
+                  {% else %}
+                  <button class="btn btn-outline-kepler btn-sm"
+                          onclick="toggleStudent({{ student.id }}, 'unconfirm_cohort')">
+                    Unconfirm
+                  </button>
+                  {% endif %}
+                {% endif %}
+                {% if student.can_vote %}
+                <button class="btn btn-danger-soft btn-sm"
+                        onclick="toggleStudent({{ student.id }}, 'block')">
+                  Block
+                </button>
+                {% else %}
+                <button class="btn btn-green btn-sm"
+                        onclick="toggleStudent({{ student.id }}, 'unblock')">
+                  Unblock
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-4 small-muted">
+              No students found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleStudent(studentId, action) {
+  fetch(`/dashboard/admin/students/${studentId}/toggle/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `action=${action}`
+  })
+  .then(r => r.json())
+  .then(() => location.reload());
+}
+</script>
+
+{% endblock %}

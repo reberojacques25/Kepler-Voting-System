@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}" class="active">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Campaign Posts</h1>
+        <div class="small-muted">{{ total }} post{{ total|pluralize }}</div>
+      </div>
+    </div>
+    <div class="kepler-card p-3 mb-4">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="small-muted d-block mb-1">Election</label>
+          <select name="election" class="form-select form-select-sm" style="min-width:200px;">
+            <option value="">All Elections</option>
+            {% for election in elections %}
+            <option value="{{ election.id }}"
+              {% if selected_election == election.id|stringformat:"s" %}selected{% endif %}>
+              {{ election.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small-muted d-block mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm" style="min-width:150px;">
+            <option value="">All</option>
+            <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-kepler btn-sm">Filter</button>
+        <a href="{% url 'dashboard:admin_campaigns' %}" class="btn btn-outline-kepler btn-sm">Clear</a>
+      </form>
+    </div>
+    <div class="row g-3">
+      {% for post in posts %}
+      <div class="col-md-6">
+        <div class="kepler-card p-4 h-100">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <div>
+              <div class="small-muted mb-1"
+                   style="font-size:.75rem;font-weight:700;text-transform:uppercase;">
+                {{ post.candidate.position.election.name }} · {{ post.candidate.position.title }}
+              </div>
+              <div class="fw-700">{{ post.title }}</div>
+              <div class="small-muted" style="font-size:.82rem;">by {{ post.candidate.full_name }}</div>
+            </div>
+            {% if post.status == 'pending' %}<span class="k-pill pill-pending">⏳ Pending</span>
+            {% elif post.status == 'approved' %}<span class="k-pill pill-approved">✓ Live</span>
+            {% else %}<span class="k-pill pill-rejected">✗ Rejected</span>{% endif %}
+          </div>
+          {% if post.image %}
+          <img src="{{ post.image.url }}"
+               style="width:100%;height:140px;object-fit:cover;border-radius:.75rem;margin-bottom:.75rem;">
+          {% endif %}
+          {% if post.content %}
+          <div class="small-muted mb-2" style="font-size:.82rem;line-height:1.6;">
+            {{ post.content|truncatechars:150 }}
+          </div>
+          {% endif %}
+          {% if post.link %}
+          <a href="{{ post.link }}" target="_blank" class="small-muted" style="font-size:.8rem;">
+            🔗 {{ post.link|truncatechars:40 }}
+          </a>
+          {% endif %}
+          <div class="small-muted mt-2 mb-3" style="font-size:.78rem;">
+            {{ post.created_at|date:"M d, Y H:i" }}
+          </div>
+          <div class="d-flex gap-2">
+            {% if post.status != 'approved' %}
+            <form method="POST" action="{% url 'dashboard:admin_campaign_review' post.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve">
+              <button type="submit" class="btn btn-green btn-sm">✓ Approve</button>
+            </form>
+            {% endif %}
+            {% if post.status != 'rejected' %}
+            <form method="POST" action="{% url 'dashboard:admin_campaign_review' post.id %}"
+                  onsubmit="return confirm('Reject this post?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reject">
+              <button type="submit" class="btn btn-danger-soft btn-sm">✗ Reject</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <div class="kepler-card p-5 text-center">
+          <div style="font-size:3rem;">📣</div>
+          <h5 class="fw-700 mt-3">No campaign posts yet</h5>
+          <p class="small-muted">Posts will appear here once candidates start campaigning.</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

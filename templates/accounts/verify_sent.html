@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="kepler-card bg-white p-4 p-md-5">
+      <h2 class="fw-bold mb-2">Verify your email</h2>
+      <p class="small-muted mb-0">
+        We sent a verification link to <b>{{ email }}</b>. Please open your email and click the link to activate your account.
+      </p>
+      <hr>
+      <div class="small-muted">
+        Using the console email backend? Check your terminal output where you ran the server.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}" class="active">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+
+  <div class="admin-content">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Manage Elections</h1>
+        <div class="small-muted">
+          {{ elections.count }} election{{ elections.count|pluralize }}
+        </div>
+      </div>
+      <a href="{% url 'dashboard:admin_election_create' %}"
+         class="btn btn-kepler">+ New Election</a>
+    </div>
+
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Election</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+            <th>Live Results</th>
+            <th>Positions</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for election in elections %}
+          <tr>
+            <td>
+              <div class="fw-600">{{ election.name }}</div>
+              {% if election.description %}
+              <div class="small-muted" style="font-size:.8rem;">
+                {{ election.description|truncatechars:50 }}
+              </div>
+              {% endif %}
+            </td>
+            <td class="small-muted">
+              {{ election.start_at|date:"M d, Y" }}<br>
+              <span style="font-size:.78rem;">
+                {{ election.start_at|date:"H:i" }}
+              </span>
+            </td>
+            <td class="small-muted">
+              {{ election.end_at|date:"M d, Y" }}<br>
+              <span style="font-size:.78rem;">
+                {{ election.end_at|date:"H:i" }}
+              </span>
+            </td>
+            <td>
+              {% if election.is_open %}
+                <span class="k-pill pill-open">🟢 Open</span>
+              {% elif election.is_closed %}
+                <span class="k-pill pill-closed">⚫ Closed</span>
+              {% else %}
+                <span class="k-pill pill-upcoming">🟡 Upcoming</span>
+              {% endif %}
+              {% if not election.is_published %}
+                <span class="k-pill pill-rejected ms-1"
+                      style="font-size:.7rem;">Hidden</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if election.allow_live_results %}
+                <span class="k-pill pill-green">On</span>
+              {% else %}
+                <span class="k-pill pill-closed">Off</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="k-pill pill-blue">
+                {{ election.positions.count }}
+              </span>
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                <a href="{% url 'dashboard:admin_election_manage' election.id %}"
+                   class="btn btn-kepler btn-sm">
+                  ⚙️ Manage
+                </a>
+                <a href="{% url 'dashboard:admin_election_edit' election.id %}"
+                   class="btn btn-outline-kepler btn-sm">Edit</a>
+                <form method="POST"
+                      action="{% url 'dashboard:admin_election_delete' election.id %}"
+                      onsubmit="return confirm('Delete this election and all its data?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-soft btn-sm">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-4 small-muted">
+              No elections yet. Create your first one.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}" class="active">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_candidates' %}" class="btn btn-outline-kepler btn-sm">← Back to Applications</a>
+    </div>
+    <div class="kepler-card p-4 mb-4">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        {% if application.photo %}
+        <img src="{{ application.photo.url }}"
+             style="width:64px;height:64px;border-radius:1rem;object-fit:cover;">
+        {% else %}
+        <div class="candidate-avatar">
+          {{ application.applicant.get_full_name|default:application.applicant.email|first }}
+        </div>
+        {% endif %}
+        <div>
+          <div class="fw-700 fs-5">
+            {{ application.applicant.get_full_name|default:application.applicant.email }}
+          </div>
+          <div class="small-muted">
+            {{ application.applicant.student_id }} ·
+            {{ application.applicant.cohort.name|default:"No cohort assigned" }}
+          </div>
+        </div>
+        <div class="ms-auto">
+          {% if application.status == 'pending' %}<span class="k-pill pill-pending">⏳ Pending</span>
+          {% elif application.status == 'approved' %}<span class="k-pill pill-approved">✓ Approved</span>
+          {% else %}<span class="k-pill pill-rejected">✗ Rejected</span>{% endif %}
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="small-muted mb-1" style="font-size:.75rem;font-weight:700;text-transform:uppercase;">Election</div>
+          <div class="fw-600">{{ application.position.election.name }}</div>
+        </div>
+        <div class="col-md-6">
+          <div class="small-muted mb-1" style="font-size:.75rem;font-weight:700;text-transform:uppercase;">Position</div>
+          <span class="k-pill pill-blue">{{ application.position.title }}</span>
+        </div>
+        <div class="col-md-6">
+          <div class="small-muted mb-1" style="font-size:.75rem;font-weight:700;text-transform:uppercase;">Applied On</div>
+          <div>{{ application.applied_at|date:"M d, Y H:i" }}</div>
+        </div>
+        {% if application.slogan %}
+        <div class="col-md-6">
+          <div class="small-muted mb-1" style="font-size:.75rem;font-weight:700;text-transform:uppercase;">Slogan</div>
+          <div class="fst-italic">"{{ application.slogan }}"</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% with answers=application.answers.all %}
+    {% if answers %}
+    <div class="section-title mb-3">Application Answers</div>
+    {% for answer in answers %}
+    <div class="kepler-card p-4 mb-3">
+      <div class="small-muted mb-1"
+           style="font-size:.75rem;font-weight:700;text-transform:uppercase;">
+        {{ answer.field.label }}
+        {% if answer.field.is_required %}<span style="color:#c62828;">*</span>{% endif %}
+      </div>
+      {% if answer.field.field_type == 'file' %}
+        {% if answer.file %}
+        <a href="{{ answer.file.url }}" target="_blank" class="btn btn-outline-kepler btn-sm mt-1">
+          📎 View Uploaded File
+        </a>
+        {% else %}<span class="small-muted">No file uploaded</span>{% endif %}
+      {% elif answer.field.field_type == 'url' %}
+        <a href="{{ answer.value }}" target="_blank" class="small-muted">{{ answer.value }}</a>
+      {% else %}
+        <p class="small-muted mb-0" style="line-height:1.7;white-space:pre-wrap;">
+          {{ answer.value|default:"No answer provided" }}
+        </p>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="kepler-card p-4 mb-3">
+      <div class="section-title mb-2">Application</div>
+      <p class="small-muted mb-0" style="line-height:1.7;">{{ application.why_running }}</p>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% if application.status == 'pending' %}
+    <div class="d-flex gap-3">
+      <form method="POST" action="{% url 'dashboard:admin_application_review' application.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" class="btn btn-green">✓ Approve — Make Candidate</button>
+      </form>
+      <form method="POST" action="{% url 'dashboard:admin_application_review' application.id %}"
+            onsubmit="return confirm('Reject this application?')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reject">
+        <button type="submit" class="btn btn-danger-soft">✗ Reject Application</button>
+      </form>
+    </div>
+    {% elif application.status == 'approved' %}
+    <div class="card-green p-3 rounded-3">
+      <div class="fw-600">✓ Approved on {{ application.reviewed_at|date:"M d, Y" }}</div>
+    </div>
+    {% else %}
+    <div class="kepler-card p-3">
+      <div class="fw-600 text-danger">✗ Rejected on {{ application.reviewed_at|date:"M d, Y" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

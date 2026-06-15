@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="hero p-5 mb-4">
+  <div class="d-flex align-items-center gap-3 mb-2">
+    <span class="k-pill pill-blue">📜 Public Record</span>
+  </div>
+  <h1 class="fw-800 mb-1" style="font-size:2rem; font-weight:800;">
+    Guild History
+  </h1>
+  <p class="small-muted mb-0">
+    A record of every Kepler student council — who led, and what they achieved.
+  </p>
+</div>
+
+{% if elections %}
+<div class="timeline">
+  {% for election in elections %}
+  <div class="timeline-item">
+    <div class="timeline-dot"></div>
+
+    <div class="timeline-year">{{ election.start_date|date:"Y" }} — {{ election.name }}</div>
+
+    <div class="kepler-card p-4">
+
+      <!-- Election meta -->
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="k-pill pill-closed">
+          {{ election.start_date|date:"M d, Y" }} → {{ election.end_date|date:"M d, Y" }}
+        </span>
+        <span class="k-pill pill-green">
+          {{ election.winners.count }} position{{ election.winners.count|pluralize }} declared
+        </span>
+      </div>
+
+      <!-- Winners grid -->
+      {% with winners=election.winners.all %}
+      {% if winners %}
+      <div class="row g-3 mb-3">
+        {% for winner in winners %}
+        <div class="col-md-6">
+          <div class="card-soft p-3 h-100">
+
+            <!-- Position label -->
+            <div class="small-muted mb-1" style="font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;">
+              {{ winner.position.title }}
+            </div>
+
+            <!-- Candidate name -->
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="candidate-avatar" style="width:42px;height:42px;font-size:1rem;border-radius:.75rem;">
+                {{ winner.candidate.full_name|first }}
+              </div>
+              <div>
+                <div class="fw-700">{{ winner.candidate.full_name }}</div>
+                <span class="k-pill pill-winner" style="font-size:.7rem;">🏆 Elected</span>
+              </div>
+            </div>
+
+            <!-- Achievements -->
+            {% with achievements=winner.achievements.all %}
+            {% if achievements %}
+            <div class="mt-2">
+              <div class="small-muted mb-1" style="font-size:.75rem;">Achievements</div>
+              {% for achievement in achievements %}
+              {% if achievement.status == 'approved' %}
+              <div class="achievement-card mb-2">
+                <div class="fw-600" style="font-size:.85rem;">{{ achievement.title }}</div>
+                <div class="small-muted" style="font-size:.8rem;">{{ achievement.description }}</div>
+              </div>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="small-muted" style="font-size:.8rem;">No achievements recorded yet.</div>
+            {% endif %}
+            {% endwith %}
+
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- View full detail link -->
+      <a href="{% url 'history:council_detail' election.id %}"
+         class="btn btn-outline-kepler btn-sm">
+        View full council detail →
+      </a>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<!-- Empty state -->
+<div class="kepler-card p-5 text-center">
+  <div style="font-size:3rem;">🏛️</div>
+  <h5 class="fw-700 mt-3">No council history yet</h5>
+  <p class="small-muted">
+    Once elections are completed and winners declared, they will appear here.
+  </p>
+</div>
+{% endif %}
+
+{% endblock %}

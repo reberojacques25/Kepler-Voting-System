@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="hero p-4 p-md-5 mb-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+    <div>
+      <h2 class="fw-800 mb-1">Welcome back 👋</h2>
+      <div class="small-muted">{{ user.email }} · {{ user.student_id }}</div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        {% if user.is_email_verified %}
+        <span class="k-pill pill-approved">✓ Email Verified</span>
+        {% else %}
+        <span class="k-pill pill-rejected">✗ Email Not Verified</span>
+        {% endif %}
+        {% if user.cohort %}
+          {% if user.is_cohort_confirmed %}
+          <span class="k-pill pill-approved">✓ {{ user.cohort.name }} Confirmed</span>
+          {% else %}
+          <span class="k-pill pill-pending">⏳ {{ user.cohort.name }} — Pending Confirmation</span>
+          {% endif %}
+        {% else %}
+        <span class="k-pill pill-pending">No Cohort Assigned</span>
+        {% endif %}
+        {% if user.can_vote %}
+        <span class="k-pill pill-green">Voting Active</span>
+        {% else %}
+        <span class="k-pill pill-rejected">Voting Blocked</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'elections:elections_list' %}" class="btn btn-outline-kepler btn-sm">
+        Browse Elections
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <a href="{% url 'elections:open_positions' %}" class="text-decoration-none">
+      <div class="kepler-card p-4 h-100" style="border-left:4px solid var(--kepler-blue);">
+        <div style="font-size:2rem;">🙋</div>
+        <div class="fw-700 mt-2">Apply for Positions</div>
+        <div class="small-muted" style="font-size:.85rem;">
+          Browse open positions and submit your application
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'elections:my_applications' %}" class="text-decoration-none">
+      <div class="kepler-card p-4 h-100" style="border-left:4px solid var(--kepler-green);">
+        <div style="font-size:2rem;">📋</div>
+        <div class="fw-700 mt-2">My Applications</div>
+        <div class="small-muted" style="font-size:.85rem;">
+          Track the status of your candidate applications
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'elections:my_campaign' %}" class="text-decoration-none">
+      <div class="kepler-card p-4 h-100" style="border-left:4px solid var(--kepler-blue);">
+        <div style="font-size:2rem;">📣</div>
+        <div class="fw-700 mt-2">My Campaign</div>
+        <div class="small-muted" style="font-size:.85rem;">
+          Post campaign content if you are an approved candidate
+        </div>
+      </div>
+    </a>
+  </div>
+  {% if user.candidacies.exists %}
+  {% for candidacy in user.candidacies.all %}
+  {% if candidacy.wins.exists %}
+  <div class="col-md-3">
+    <a href="{% url 'dashboard:my_achievements' %}" class="text-decoration-none">
+      <div class="kepler-card p-4 h-100" style="border-left:4px solid var(--kepler-green);">
+        <div style="font-size:2rem;">🌟</div>
+        <div class="fw-700 mt-2">My Achievements</div>
+        <div class="small-muted" style="font-size:.85rem;">
+          Submit achievements from your time as an elected leader
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+</div>
+
+<!-- Elections -->
+<div class="section-title mb-3">🗳️ Elections</div>
+<div class="row g-3 mb-4">
+  {% for e in elections %}
+  <div class="col-md-6 col-lg-4">
+    <div class="kepler-card p-4 h-100">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="fw-700">{{ e.name }}</div>
+        {% if e.is_open %}<span class="k-pill pill-open">🟢 Open</span>
+        {% elif e.is_closed %}<span class="k-pill pill-closed">⚫ Closed</span>
+        {% else %}<span class="k-pill pill-upcoming">🟡 Upcoming</span>{% endif %}
+      </div>
+      <div class="small-muted mb-1" style="font-size:.82rem;">
+        {{ e.positions.count }} position{{ e.positions.count|pluralize }}
+      </div>
+      <div class="small-muted mb-3" style="font-size:.78rem;">
+        {{ e.start_at|date:"M d, Y" }} → {{ e.end_at|date:"M d, Y" }}
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'elections:election_detail' e.id %}"
+           class="btn btn-outline-kepler btn-sm">View</a>
+        <a href="{% url 'elections:campaign_browse' e.id %}"
+           class="btn btn-outline-kepler btn-sm">📣 Campaigns</a>
+        {% if e.is_closed or e.allow_live_results %}
+        <a href="{% url 'elections:results' e.id %}"
+           class="btn btn-kepler btn-sm">Results</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="kepler-card p-4 text-center">
+      <div class="small-muted">No elections available yet.</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- My Recent Votes -->
+<div class="section-title mb-3">🗳️ My Recent Votes</div>
+<div class="kepler-card p-0 overflow-hidden">
+  <table class="table mb-0">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Election</th>
+        <th>Position</th>
+        <th>Candidate</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in my_votes|slice:":10" %}
+      <tr>
+        <td class="small-muted">{{ v.cast_at|date:"M d, Y" }}</td>
+        <td class="fw-600">{{ v.election.name }}</td>
+        <td>{{ v.position.title }}</td>
+        <td>{{ v.candidate.full_name }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center py-4 small-muted">No votes recorded yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

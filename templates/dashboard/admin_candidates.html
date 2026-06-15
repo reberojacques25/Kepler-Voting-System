@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}" class="active">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Candidate Applications</h1>
+        <div class="small-muted">{{ total }} application{{ total|pluralize }}</div>
+      </div>
+    </div>
+    <div class="kepler-card p-3 mb-4">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="small-muted d-block mb-1">Election</label>
+          <select name="election" class="form-select form-select-sm" style="min-width:200px;">
+            <option value="">All Elections</option>
+            {% for election in elections %}
+            <option value="{{ election.id }}"
+              {% if selected_election == election.id|stringformat:"s" %}selected{% endif %}>
+              {{ election.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small-muted d-block mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm" style="min-width:150px;">
+            <option value="">All</option>
+            <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-kepler btn-sm">Filter</button>
+        <a href="{% url 'dashboard:admin_candidates' %}" class="btn btn-outline-kepler btn-sm">Clear</a>
+      </form>
+    </div>
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Applicant</th>
+            <th>Election</th>
+            <th>Position</th>
+            <th>Applied</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for app in applications %}
+          <tr>
+            <td>
+              <div class="fw-600">{{ app.applicant.get_full_name|default:app.applicant.email }}</div>
+              <div class="small-muted" style="font-size:.8rem;">
+                {{ app.applicant.student_id }} · {{ app.applicant.cohort.name|default:"No cohort" }}
+              </div>
+            </td>
+            <td class="small-muted">{{ app.position.election.name }}</td>
+            <td><span class="k-pill pill-blue">{{ app.position.title }}</span></td>
+            <td class="small-muted">{{ app.applied_at|date:"M d, Y" }}</td>
+            <td>
+              {% if app.status == 'pending' %}<span class="k-pill pill-pending">⏳ Pending</span>
+              {% elif app.status == 'approved' %}<span class="k-pill pill-approved">✓ Approved</span>
+              {% else %}<span class="k-pill pill-rejected">✗ Rejected</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                <a href="{% url 'dashboard:admin_application_detail' app.id %}"
+                   class="btn btn-outline-kepler btn-sm">View</a>
+                {% if app.status == 'pending' %}
+                <form method="POST" action="{% url 'dashboard:admin_application_review' app.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="approve">
+                  <button type="submit" class="btn btn-green btn-sm">Approve</button>
+                </form>
+                <form method="POST" action="{% url 'dashboard:admin_application_review' app.id %}"
+                      onsubmit="return confirm('Reject this application?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reject">
+                  <button type="submit" class="btn btn-danger-soft btn-sm">Reject</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 small-muted">No applications yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

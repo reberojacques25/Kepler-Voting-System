@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}" class="active">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Achievement Submissions</h1>
+        <div class="small-muted">{{ total }} submission{{ total|pluralize }}</div>
+      </div>
+    </div>
+    <div class="kepler-card p-3 mb-4">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="small-muted d-block mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm" style="min-width:150px;">
+            <option value="">All</option>
+            <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-kepler btn-sm">Filter</button>
+        <a href="{% url 'dashboard:admin_achievements' %}" class="btn btn-outline-kepler btn-sm">Clear</a>
+      </form>
+    </div>
+    <div class="row g-3">
+      {% for achievement in achievements %}
+      <div class="col-12">
+        <div class="kepler-card p-4">
+          <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+            <div class="flex-grow-1">
+              <div class="small-muted mb-1"
+                   style="font-size:.75rem;font-weight:700;text-transform:uppercase;">
+                {{ achievement.winner.election.name }} · {{ achievement.winner.position.title }}
+              </div>
+              <div class="fw-700 fs-5 mb-1">{{ achievement.winner.candidate.full_name }}</div>
+              <div class="fw-600 mb-1">{{ achievement.title }}</div>
+              <div class="small-muted mb-2" style="line-height:1.6;">{{ achievement.description }}</div>
+              <div class="small-muted" style="font-size:.78rem;">
+                Submitted {{ achievement.submitted_at|date:"M d, Y H:i" }}
+                {% if achievement.reviewed_at %}
+                · Reviewed {{ achievement.reviewed_at|date:"M d, Y" }}
+                by {{ achievement.reviewed_by.email }}
+                {% endif %}
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-2">
+              {% if achievement.status == 'pending' %}<span class="k-pill pill-pending">⏳ Pending</span>
+              {% elif achievement.status == 'approved' %}<span class="k-pill pill-approved">✓ Approved</span>
+              {% else %}<span class="k-pill pill-rejected">✗ Rejected</span>{% endif %}
+              {% if achievement.status == 'pending' %}
+              <div class="d-flex gap-1">
+                <form method="POST" action="{% url 'dashboard:admin_achievement_review' achievement.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="approve">
+                  <button type="submit" class="btn btn-green btn-sm">✓ Approve</button>
+                </form>
+                <form method="POST"
+                      action="{% url 'dashboard:admin_achievement_review' achievement.id %}"
+                      onsubmit="return confirm('Reject this achievement?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reject">
+                  <button type="submit" class="btn btn-danger-soft btn-sm">✗ Reject</button>
+                </form>
+              </div>
+              {% elif achievement.status == 'approved' %}
+              <form method="POST"
+                    action="{% url 'dashboard:admin_achievement_review' achievement.id %}"
+                    onsubmit="return confirm('Remove approval?')">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn btn-danger-soft btn-sm">Remove</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <div class="kepler-card p-5 text-center">
+          <div style="font-size:3rem;">🌟</div>
+          <h5 class="fw-700 mt-3">No achievements yet</h5>
+          <p class="small-muted">
+            Elected leaders will submit their achievements here after winners are declared.
+          </p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

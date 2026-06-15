@@ -1,0 +1,507 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}" class="active">📈 Analytics</a>
+  </div>
+
+  <div class="admin-content">
+
+    <div class="mb-4">
+      <h1 class="section-title mb-1">Analytics</h1>
+      <div class="small-muted">
+        Comprehensive election data, turnout, and participation analysis
+      </div>
+    </div>
+
+    <!-- Cross-election comparison — always shown -->
+    {% if cross_election_data %}
+    <div class="kepler-card p-4 mb-4">
+      <div class="section-title mb-1">📊 Turnout Across All Elections</div>
+      <div class="small-muted mb-3">
+        Compare voter participation over time
+      </div>
+      <canvas id="crossElectionChart" height="80"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- Election picker -->
+    <div class="kepler-card p-3 mb-4">
+      <form method="GET" class="d-flex gap-2 align-items-end flex-wrap">
+        <div>
+          <label class="small-muted d-block mb-1">
+            Select Election for Detailed Analysis
+          </label>
+          <select name="election" class="form-select" style="min-width:280px;">
+            <option value="">— Pick an election —</option>
+            {% for election in elections %}
+            <option value="{{ election.id }}"
+              {% if selected_election.id == election.id %}selected{% endif %}>
+              {{ election.name }} ({{ election.start_at|date:"Y" }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-kepler">View Detailed Analytics</button>
+      </form>
+    </div>
+
+    {% if selected_election and analytics %}
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Students</div>
+          <div class="stat-number">{{ analytics.total_students }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">
+            Registered in the system
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Votes Cast</div>
+          <div class="stat-number">{{ analytics.total_votes }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">
+            Across all positions
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Voter Turnout</div>
+          <div class="stat-number">{{ analytics.turnout_pct }}%</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">
+            Of registered students
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vote Timeline -->
+    {% if analytics.timeline_labels %}
+    <div class="kepler-card p-4 mb-4">
+      <div class="section-title mb-1">📅 Voting Activity Over Time</div>
+      <div class="small-muted mb-3">
+        Votes cast per hour during the election period
+      </div>
+      <canvas id="timelineChart" height="80"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- Peak Voting Hours -->
+    {% if analytics.total_votes > 0 %}
+    <div class="kepler-card p-4 mb-4">
+      <div class="section-title mb-1">⏰ Peak Voting Hours</div>
+      <div class="small-muted mb-3">
+        Which hours of the day had the most votes — useful for planning reminders
+      </div>
+      <canvas id="peakHoursChart" height="80"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- Results by Position with Competition Score and Abstention -->
+    <div class="section-title mb-3">📋 Results by Position</div>
+    {% for item in analytics.positions_data %}
+    <div class="kepler-card p-4 mb-3">
+
+      <!-- Position header -->
+      <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <div class="fw-700 fs-5">{{ item.position.title }}</div>
+          <div class="small-muted">
+            {{ item.total_votes }} vote{{ item.total_votes|pluralize }} ·
+            {{ item.eligible }} eligible ·
+            {{ item.abstained }} abstained
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          {% if item.winner %}
+          <span class="k-pill pill-winner">🏆 {{ item.winner.candidate.full_name }}</span>
+          {% endif %}
+          <!-- Competition score -->
+          <span class="k-pill
+            {% if item.competition == 'High' %}pill-rejected
+            {% elif item.competition == 'Medium' %}pill-pending
+            {% elif item.competition == 'Low' %}pill-approved
+            {% else %}pill-closed{% endif %}">
+            🔥 {{ item.competition }} Competition
+          </span>
+        </div>
+      </div>
+
+      <!-- Candidate bars -->
+      {% if item.candidates %}
+      {% for candidate in item.candidates %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <div class="d-flex align-items-center gap-2">
+            {% if candidate.photo %}
+            <img src="{{ candidate.photo.url }}"
+                 style="width:28px;height:28px;border-radius:.4rem;object-fit:cover;">
+            {% else %}
+            <div class="candidate-avatar"
+                 style="width:28px;height:28px;font-size:.7rem;border-radius:.4rem;">
+              {{ candidate.full_name|first }}
+            </div>
+            {% endif %}
+            <span class="fw-600">{{ candidate.full_name }}</span>
+            {% if item.winner.candidate.id == candidate.id %}
+            <span class="k-pill pill-winner" style="font-size:.7rem;">🏆</span>
+            {% endif %}
+          </div>
+          <span class="fw-700">
+            {{ candidate.vote_count }}
+            {% if item.total_votes %}
+            ({% widthratio candidate.vote_count item.total_votes 100 %}%)
+            {% endif %}
+          </span>
+        </div>
+        <div style="background:var(--kepler-border);border-radius:999px;
+                    height:10px;overflow:hidden;">
+          {% if item.total_votes %}
+          <div style="height:100%;border-radius:999px;
+                      background:linear-gradient(90deg,var(--kepler-blue),var(--kepler-green));
+                      width:{% widthratio candidate.vote_count item.total_votes 100 %}%;
+                      transition:width .6s ease;">
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Abstention bar -->
+      <div class="mt-3 p-2 rounded-3" style="background:rgba(0,0,0,0.03);">
+        <div class="d-flex justify-content-between small-muted mb-1"
+             style="font-size:.82rem;">
+          <span>🚫 Did not vote</span>
+          <span>{{ item.abstained }} students ({{ item.abstention_pct }}%)</span>
+        </div>
+        <div style="background:var(--kepler-border);border-radius:999px;
+                    height:6px;overflow:hidden;">
+          {% if item.eligible %}
+          <div style="height:100%;border-radius:999px;background:#e0e0e0;
+                      width:{{ item.abstention_pct }}%;"></div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% else %}
+      <div class="small-muted">No candidates for this position.</div>
+      {% endif %}
+
+    </div>
+    {% empty %}
+    <div class="kepler-card p-4 text-center">
+      <div class="small-muted">No positions found for this election.</div>
+    </div>
+    {% endfor %}
+
+    <!-- Candidate Momentum -->
+    {% if analytics.momentum_data %}
+    <div class="section-title mb-3">🚀 Candidate Momentum</div>
+    <div class="small-muted mb-3">
+      How candidate vote totals grew over time during the election
+    </div>
+    {% for item in analytics.momentum_data %}
+    <div class="kepler-card p-4 mb-3">
+      <div class="fw-700 mb-3">{{ item.position.title }}</div>
+      <canvas id="momentumChart_{{ forloop.counter }}" height="100"></canvas>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Cohort Participation -->
+    {% if analytics.cohort_data %}
+    <div class="kepler-card p-4 mb-4">
+      <div class="section-title mb-1">🎓 Participation by Cohort</div>
+      <div class="small-muted mb-3">
+        How many students from each cohort participated
+      </div>
+      <canvas id="cohortChart" height="80"></canvas>
+      <div class="mt-3">
+        {% for item in analytics.cohort_data %}
+        <div class="d-flex justify-content-between align-items-center py-2"
+             style="border-bottom:1px solid var(--kepler-border);">
+          <div class="fw-600">{{ item.cohort.name }}</div>
+          <div class="d-flex gap-3 align-items-center">
+            <span class="small-muted">{{ item.votes }} votes</span>
+            <span class="small-muted">{{ item.students }} students</span>
+            <span class="k-pill pill-blue" style="font-size:.75rem;">
+              {{ item.pct }}%
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Cohort vs Position Breakdown -->
+    {% if analytics.cohort_position_data %}
+    <div class="kepler-card p-4 mb-4">
+      <div class="section-title mb-1">🔀 Cohort × Position Breakdown</div>
+      <div class="small-muted mb-3">
+        How many votes each cohort cast on each position
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Position</th>
+              {% for cohort in analytics.cohort_data %}
+              <th>{{ cohort.cohort.name }}</th>
+              {% endfor %}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in analytics.cohort_position_data %}
+            <tr>
+              <td class="fw-600">{{ row.position.title }}</td>
+              {% for item in row.cohorts %}
+              <td>
+                {% if item.votes > 0 %}
+                <span class="k-pill pill-blue"
+                      style="font-size:.75rem;">{{ item.votes }}</span>
+                {% else %}
+                <span class="small-muted">—</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+              <td class="fw-700">
+                {% with total=0 %}
+                {% for item in row.cohorts %}
+                {% endfor %}
+                {% endwith %}
+                —
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Export -->
+    <div class="kepler-card p-4">
+      <div class="section-title mb-2">📥 Export Data</div>
+      <div class="small-muted mb-3">Download this election's full results.</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'dashboard:export_election_results_csv' selected_election.id %}" class="btn btn-outline-kepler">⬇ Download CSV</a>
+        <a href="{% url 'dashboard:export_election_results_pdf' selected_election.id %}" class="btn btn-kepler">⬇ Download PDF</a>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="kepler-card p-5 text-center">
+      <div style="font-size:3rem;">📈</div>
+      <h5 class="fw-700 mt-3">Select an election above</h5>
+      <p class="small-muted">
+        Choose an election to see turnout, results, voting timeline,
+        peak hours, candidate momentum, cohort breakdown and more.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const BLUE = '#0d47a1';
+const GREEN = '#1b5e20';
+const BLUE_LIGHT = 'rgba(13,71,161,0.15)';
+const GREEN_LIGHT = 'rgba(27,94,32,0.15)';
+
+const PALETTE = [
+  '#0d47a1','#1b5e20','#e65100','#6a1b9a',
+  '#00695c','#c62828','#283593','#558b2f'
+];
+
+// Cross-election comparison
+{% if cross_election_data %}
+new Chart(document.getElementById('crossElectionChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for e in cross_election_data %}'{{ e.name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [
+      {
+        label: 'Votes Cast',
+        data: [{% for e in cross_election_data %}{{ e.votes }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        backgroundColor: BLUE,
+        borderRadius: 6,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Turnout %',
+        data: [{% for e in cross_election_data %}{{ e.pct }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        type: 'line',
+        borderColor: GREEN,
+        backgroundColor: GREEN_LIGHT,
+        borderWidth: 2,
+        pointRadius: 5,
+        fill: true,
+        yAxisID: 'y1',
+        tension: 0.3,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        position: 'left',
+        title: { display: true, text: 'Votes' },
+        grid: { color: 'rgba(0,0,0,0.05)' }
+      },
+      y1: {
+        beginAtZero: true,
+        max: 100,
+        position: 'right',
+        title: { display: true, text: 'Turnout %' },
+        grid: { drawOnChartArea: false }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+
+{% if selected_election and analytics %}
+
+// Timeline
+{% if analytics.timeline_labels %}
+new Chart(document.getElementById('timelineChart'), {
+  type: 'line',
+  data: {
+    labels: {{ analytics.timeline_labels|safe }},
+    datasets: [{
+      label: 'Votes Cast',
+      data: {{ analytics.timeline_counts|safe }},
+      borderColor: BLUE,
+      backgroundColor: BLUE_LIGHT,
+      borderWidth: 2,
+      pointRadius: 4,
+      fill: true,
+      tension: 0.3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+
+// Peak hours
+{% if analytics.total_votes > 0 %}
+new Chart(document.getElementById('peakHoursChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ analytics.peak_labels|safe }},
+    datasets: [{
+      label: 'Votes',
+      data: {{ analytics.peak_counts|safe }},
+      backgroundColor: PALETTE.map((c, i) => `rgba(13,71,161,${0.3 + (i % 8) * 0.09})`),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+
+// Cohort participation
+{% if analytics.cohort_data %}
+new Chart(document.getElementById('cohortChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in analytics.cohort_data %}'{{ item.cohort.name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [
+      {
+        label: 'Votes Cast',
+        data: [{% for item in analytics.cohort_data %}{{ item.votes }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        backgroundColor: BLUE,
+        borderRadius: 6,
+      },
+      {
+        label: 'Total Students',
+        data: [{% for item in analytics.cohort_data %}{{ item.students }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        backgroundColor: GREEN_LIGHT,
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+
+// Candidate momentum charts
+{% for item in analytics.momentum_data %}
+new Chart(document.getElementById('momentumChart_{{ forloop.counter }}'), {
+  type: 'line',
+  data: {
+    labels: {{ item.labels|safe }},
+    datasets: [
+      {% for candidate in item.candidates %}
+      {
+        label: '{{ candidate.name }}',
+        data: {{ candidate.data|safe }},
+        borderColor: PALETTE[{{ forloop.counter0 }} % PALETTE.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 3,
+        tension: 0.3,
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endfor %}
+
+{% endif %}
+</script>
+
+{% endblock %}

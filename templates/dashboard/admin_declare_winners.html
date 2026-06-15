@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}" class="active">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_election_manage' election.id %}"
+         class="btn btn-outline-kepler btn-sm">← Back to {{ election.name }}</a>
+    </div>
+    <div class="hero p-4 mb-4">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div>
+          <span class="k-pill pill-blue mb-2 d-inline-block">Declare Winners</span>
+          <h1 class="fw-800 mb-1" style="font-size:1.6rem;">{{ election.name }}</h1>
+          <div class="small-muted">
+            {{ election.start_at|date:"M d, Y" }} → {{ election.end_at|date:"M d, Y" }}
+          </div>
+        </div>
+        <div>
+          {% if election.is_open %}<span class="k-pill pill-open">🟢 Still Open</span>
+          {% elif election.is_closed %}<span class="k-pill pill-closed">⚫ Closed</span>
+          {% else %}<span class="k-pill pill-upcoming">🟡 Not Started</span>{% endif %}
+        </div>
+      </div>
+      {% if election.is_open %}
+      <div class="card-blue p-3 rounded-3 mt-3">
+        <div class="small-muted" style="font-size:.85rem;">
+          ⚠️ This election is still open. Consider waiting until voting closes for final results.
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% if positions_data %}
+    <div class="row g-4">
+      {% for item in positions_data %}
+      <div class="col-12">
+        <div class="kepler-card p-4">
+          <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+              <div class="section-title mb-0">{{ item.position.title }}</div>
+              <div class="small-muted" style="font-size:.82rem;">
+                {{ item.candidates.count }} approved candidate{{ item.candidates.count|pluralize }}
+              </div>
+            </div>
+            {% if item.declared_winner %}
+            <span class="k-pill pill-winner">🏆 Winner Declared</span>
+            {% else %}
+            <span class="k-pill pill-pending">No winner yet</span>
+            {% endif %}
+          </div>
+          {% if item.declared_winner %}
+          <div class="card-green p-3 rounded-3 mb-3
+                      d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              {% if item.declared_winner.candidate.photo %}
+              <img src="{{ item.declared_winner.candidate.photo.url }}"
+                   style="width:48px;height:48px;border-radius:.75rem;object-fit:cover;">
+              {% else %}
+              <div class="candidate-avatar" style="width:48px;height:48px;font-size:1.2rem;">
+                {{ item.declared_winner.candidate.full_name|first }}
+              </div>
+              {% endif %}
+              <div>
+                <div class="fw-700">🏆 {{ item.declared_winner.candidate.full_name }}</div>
+                <div class="small-muted" style="font-size:.78rem;">
+                  Declared by {{ item.declared_winner.declared_by.email }}
+                  on {{ item.declared_winner.declared_at|date:"M d, Y H:i" }}
+                </div>
+              </div>
+            </div>
+            <form method="POST"
+                  action="{% url 'dashboard:admin_undeclare_winner' election.id item.position.id %}"
+                  onsubmit="return confirm('Remove this winner declaration?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger-soft btn-sm">Remove Declaration</button>
+            </form>
+          </div>
+          {% endif %}
+          {% if item.candidates %}
+          <div class="row g-2">
+            {% for candidate in item.candidates %}
+            <div class="col-md-6">
+              <div class="card-soft p-3 d-flex align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  {% if candidate.photo %}
+                  <img src="{{ candidate.photo.url }}"
+                       style="width:40px;height:40px;border-radius:.6rem;object-fit:cover;">
+                  {% else %}
+                  <div class="candidate-avatar"
+                       style="width:40px;height:40px;font-size:1rem;border-radius:.6rem;">
+                    {{ candidate.full_name|first }}
+                  </div>
+                  {% endif %}
+                  <div>
+                    <div class="fw-600">{{ candidate.full_name }}</div>
+                    <div class="small-muted" style="font-size:.78rem;">
+                      {{ candidate.vote_count }} vote{{ candidate.vote_count|pluralize }}
+                    </div>
+                  </div>
+                </div>
+                {% if item.declared_winner.candidate.id == candidate.id %}
+                <span class="k-pill pill-winner" style="font-size:.7rem;">🏆 Winner</span>
+                {% else %}
+                <form method="POST"
+                      action="{% url 'dashboard:admin_declare_winner_save' election.id item.position.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="candidate_id" value="{{ candidate.id }}">
+                  <button type="submit" class="btn btn-kepler btn-sm">Declare Winner</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="small-muted text-center py-3">No approved candidates for this position yet.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="kepler-card p-5 text-center">
+      <div style="font-size:3rem;">📋</div>
+      <h5 class="fw-700 mt-3">No positions in this election</h5>
+      <p class="small-muted">Add positions first before declaring winners.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

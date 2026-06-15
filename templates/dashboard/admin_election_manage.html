@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}" class="active">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+
+  <div class="admin-content">
+
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_elections' %}"
+         class="btn btn-outline-kepler btn-sm">← Back to Elections</a>
+    </div>
+
+    <!-- Election Header -->
+    <div class="hero p-4 mb-4">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div>
+          <div class="d-flex gap-2 mb-2">
+            {% if election.is_open %}
+            <span class="k-pill pill-open">🟢 Open</span>
+            {% elif election.is_closed %}
+            <span class="k-pill pill-closed">⚫ Closed</span>
+            {% else %}
+            <span class="k-pill pill-upcoming">🟡 Upcoming</span>
+            {% endif %}
+            {% if election.allow_live_results %}
+            <span class="k-pill pill-green">Live Results On</span>
+            {% endif %}
+          </div>
+          <h1 class="fw-800 mb-1" style="font-size:1.6rem;">{{ election.name }}</h1>
+          <div class="small-muted">
+            {{ election.start_at|date:"M d, Y H:i" }} →
+            {{ election.end_at|date:"M d, Y H:i" }}
+          </div>
+          {% if election.description %}
+          <div class="small-muted mt-1">{{ election.description }}</div>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{% url 'dashboard:admin_declare_winners' election.id %}"
+             class="btn btn-kepler btn-sm">🏆 Declare Winners</a>
+          <a href="{% url 'dashboard:admin_election_edit' election.id %}"
+             class="btn btn-outline-kepler btn-sm">✏️ Edit Election</a>
+        </div>
+      </div>
+
+      <!-- Scope info -->
+      <div class="d-flex gap-3 mt-3 flex-wrap">
+        <div class="card-blue p-2 rounded-3 d-flex gap-2 align-items-center">
+          <span style="font-size:.75rem;font-weight:700;">👁️ VISIBLE TO</span>
+          <span class="small-muted" style="font-size:.82rem;">
+            {% if election.visibility_scope == 'all' %}Whole College
+            {% else %}
+              {% for c in election.visible_to_cohorts.all %}
+                {{ c.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% endif %}
+          </span>
+        </div>
+        <div class="card-green p-2 rounded-3 d-flex gap-2 align-items-center">
+          <span style="font-size:.75rem;font-weight:700;">🗳️ VOTING</span>
+          <span class="small-muted" style="font-size:.82rem;">
+            {% if election.voting_scope == 'all' %}Whole College
+            {% else %}
+              {% for c in election.voting_cohorts.all %}
+                {{ c.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Positions Section -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="section-title mb-0">
+        Positions
+        <span class="k-pill pill-blue ms-2">{{ positions.count }}</span>
+      </h2>
+      <a href="{% url 'dashboard:admin_position_create' election.id %}"
+         class="btn btn-kepler btn-sm">+ Add Position</a>
+    </div>
+
+    {% if positions %}
+    <div class="row g-3">
+      {% for position in positions %}
+      <div class="col-md-6">
+        <div class="kepler-card p-3 h-100">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <div>
+              <div class="fw-700">{{ position.title }}</div>
+              {% if position.description %}
+              <div class="small-muted" style="font-size:.82rem;">{{ position.description }}</div>
+              {% endif %}
+            </div>
+            <span class="k-pill pill-closed" style="font-size:.7rem;">#{{ position.order }}</span>
+          </div>
+          <div class="mb-2">
+            <span class="small-muted" style="font-size:.75rem;font-weight:700;">🗳️ WHO VOTES:</span>
+            <span class="small-muted" style="font-size:.82rem;">
+              {% if position.voting_scope == 'all' %}Whole College
+              {% else %}
+                {% for c in position.allowed_cohorts.all %}
+                  {{ c.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}No cohorts selected{% endfor %}
+              {% endif %}
+            </span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="small-muted" style="font-size:.82rem;">Applications open</span>
+            <button
+              class="btn btn-sm {% if position.applications_open %}btn-green{% else %}btn-outline-kepler{% endif %}"
+              onclick="toggleApplications({{ position.id }}, this)"
+              data-election="{{ election.id }}"
+              data-position="{{ position.id }}">
+              {% if position.applications_open %}✓ Open{% else %}Closed{% endif %}
+            </button>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'dashboard:admin_position_fields' election.id position.id %}"
+               class="btn btn-kepler btn-sm">⚙️ Fields</a>
+            <a href="{% url 'dashboard:admin_position_edit' election.id position.id %}"
+               class="btn btn-outline-kepler btn-sm">Edit</a>
+            <form method="POST"
+                  action="{% url 'dashboard:admin_position_delete' election.id position.id %}"
+                  onsubmit="return confirm('Delete this position?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger-soft btn-sm">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="kepler-card p-5 text-center">
+      <div style="font-size:2.5rem;">📋</div>
+      <h5 class="fw-700 mt-3">No positions yet</h5>
+      <p class="small-muted">Add positions like Guild President, Vice President, etc.</p>
+      <a href="{% url 'dashboard:admin_position_create' election.id %}"
+         class="btn btn-kepler">+ Add First Position</a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+function toggleApplications(positionId, btn) {
+  const electionId = btn.dataset.election;
+  fetch(`/dashboard/admin/elections/${electionId}/positions/${positionId}/toggle-applications/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.applications_open) {
+      btn.textContent = '✓ Open';
+      btn.className = 'btn btn-sm btn-green';
+    } else {
+      btn.textContent = 'Closed';
+      btn.className = 'btn btn-sm btn-outline-kepler';
+    }
+  });
+}
+</script>
+
+{% endblock %}

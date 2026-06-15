@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}" class="active">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_position_fields' election.id position.id %}"
+         class="btn btn-outline-kepler btn-sm">← Back to Fields</a>
+    </div>
+    <div class="kepler-card p-4" style="max-width:560px;">
+      <h1 class="section-title mb-1">{{ action }} Question</h1>
+      <div class="small-muted mb-4">{{ position.title }} — {{ election.name }}</div>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="small-muted d-block mb-1">Question Label *</label>
+          <input type="text" name="label" class="form-control"
+                 placeholder="e.g. Why do you want to run for this position?"
+                 value="{{ field.label|default:'' }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="small-muted d-block mb-1">Answer Type *</label>
+          <select name="field_type" class="form-select">
+            <option value="textarea"
+              {% if not field or field.field_type == 'textarea' %}selected{% endif %}>
+              Long Text / Paragraph
+            </option>
+            <option value="text"
+              {% if field.field_type == 'text' %}selected{% endif %}>Short Text</option>
+            <option value="url"
+              {% if field.field_type == 'url' %}selected{% endif %}>URL / Link</option>
+            <option value="file"
+              {% if field.field_type == 'file' %}selected{% endif %}>File Upload</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="small-muted d-block mb-1">
+            Hint / Help Text
+            <span class="small-muted" style="font-size:.78rem;">(optional)</span>
+          </label>
+          <input type="text" name="help_text" class="form-control"
+                 placeholder="e.g. Minimum 200 words"
+                 value="{{ field.help_text|default:'' }}">
+        </div>
+        <div class="mb-3">
+          <label class="small-muted d-block mb-1">Display Order</label>
+          <input type="number" name="order" class="form-control"
+                 style="max-width:120px;"
+                 value="{{ field.order|default:'0' }}" min="0">
+        </div>
+        <div class="mb-4">
+          <div class="form-check">
+            <input type="checkbox" name="is_required" class="form-check-input"
+                   id="is_required"
+                   {% if not field or field.is_required %}checked{% endif %}>
+            <label class="form-check-label small-muted" for="is_required">
+              Required — students must answer this question
+            </label>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-kepler">{{ action }} Question</button>
+          <a href="{% url 'dashboard:admin_position_fields' election.id position.id %}"
+             class="btn btn-outline-kepler">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

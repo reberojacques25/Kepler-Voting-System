@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kepler-card bg-white p-4 p-md-5">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Elections</h2>
+      <div class="small-muted">Browse published elections and view details.</div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    {% for e in elections %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card-soft p-4 h-100">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="fw-bold">{{ e.name }}</div>
+            {% if e.is_open %}<span class="k-pill">Open</span>{% elif e.is_closed %}<span class="k-pill">Closed</span>{% else %}<span class="k-pill">Upcoming</span>{% endif %}
+          </div>
+          <div class="small-muted mt-2">{{ e.description|default:"Kepler student guild election."|truncatechars:110 }}</div>
+          <div class="small-muted mt-3">
+            <div><b>Start:</b> {{ e.start_at }}</div>
+            <div><b>End:</b> {{ e.end_at }}</div>
+          </div>
+          <div class="mt-3">
+            <a class="btn btn-outline-kepler btn-sm" href="{% url 'elections:election_detail' e.id %}">View</a>
+            <a class="btn btn-kepler btn-sm" href="{% url 'elections:results' e.id %}">Results</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="small-muted">No elections published yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

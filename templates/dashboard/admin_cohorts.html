@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}" class="active">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Manage Cohorts</h1>
+        <div class="small-muted">{{ cohorts.count }} cohort{{ cohorts.count|pluralize }}</div>
+      </div>
+      <a href="{% url 'dashboard:admin_cohort_create' %}" class="btn btn-kepler">+ Add Cohort</a>
+    </div>
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Cohort Name</th>
+            <th>Year</th>
+            <th>Students</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cohort in cohorts %}
+          <tr>
+            <td class="fw-600">{{ cohort.name }}</td>
+            <td><span class="k-pill pill-blue">{{ cohort.year }}</span></td>
+            <td>{{ cohort.student_count }} student{{ cohort.student_count|pluralize }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'dashboard:admin_cohort_edit' cohort.id %}"
+                   class="btn btn-outline-kepler btn-sm">Edit</a>
+                <form method="POST"
+                      action="{% url 'dashboard:admin_cohort_delete' cohort.id %}"
+                      onsubmit="return confirm('Delete this cohort?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-soft btn-sm">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-4 small-muted">
+              No cohorts yet. Add your first cohort above.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="mb-3">
+  <a href="{% url 'elections:election_detail' election.id %}"
+     class="btn btn-outline-kepler btn-sm">← Back to {{ election.name }}</a>
+</div>
+
+<div class="hero p-4 mb-4">
+  <span class="k-pill pill-open mb-2 d-inline-block">🟢 Voting Open</span>
+  <h1 class="fw-800 mb-1" style="font-size:1.6rem;">{{ position.title }}</h1>
+  <div class="small-muted">{{ election.name }}</div>
+</div>
+
+<!-- Warning -->
+<div class="card-blue p-3 rounded-3 mb-4">
+  <div class="small-muted" style="font-size:.85rem;">
+    ⚠️ You can only vote <strong>once</strong> for this position.
+    Your vote cannot be changed after submission. Choose carefully.
+  </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-danger py-2 mb-3">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<!-- Candidates -->
+<div class="section-title mb-3">Choose a Candidate</div>
+
+<form method="POST">
+  {% csrf_token %}
+  <div class="row g-3 mb-4">
+    {% for candidate in candidates %}
+    <div class="col-md-6">
+      <label class="d-block h-100" style="cursor:pointer;">
+        <input type="radio" name="candidate_id"
+               value="{{ candidate.id }}"
+               class="d-none candidate-radio"
+               id="candidate_{{ candidate.id }}"
+               required>
+        <div class="kepler-card p-4 h-100 candidate-card"
+             style="border:2px solid transparent;transition:all .2s;"
+             onclick="selectCandidate('candidate_{{ candidate.id }}')">
+
+          <!-- Candidate header -->
+          <div class="d-flex align-items-center gap-3 mb-3">
+            {% if candidate.photo %}
+            <img src="{{ candidate.photo.url }}"
+                 style="width:64px;height:64px;border-radius:1rem;
+                        object-fit:cover;border:2px solid var(--kepler-border);">
+            {% else %}
+            <div class="candidate-avatar">{{ candidate.full_name|first }}</div>
+            {% endif %}
+            <div>
+              <div class="fw-700 fs-5">{{ candidate.full_name }}</div>
+              {% if candidate.slogan %}
+              <div class="small-muted fst-italic">"{{ candidate.slogan }}"</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Manifesto preview -->
+          {% if candidate.manifesto and candidate.manifesto != 'via custom fields' %}
+          <div class="small-muted mb-3" style="line-height:1.6;font-size:.85rem;">
+            {{ candidate.manifesto|truncatechars:180 }}
+          </div>
+          {% endif %}
+
+          <!-- Campaign posts count -->
+          <div class="d-flex align-items-center justify-content-between">
+            {% with post_count=candidate.campaign_posts.count %}
+            {% if post_count > 0 %}
+            <a href="{% url 'elections:candidate_profile' candidate.id %}"
+               target="_blank"
+               class="small-muted" style="font-size:.8rem;"
+               onclick="event.stopPropagation()">
+              📣 View {{ post_count }} campaign post{{ post_count|pluralize }} →
+            </a>
+            {% else %}
+            <span></span>
+            {% endif %}
+            {% endwith %}
+            <div class="selected-badge" id="badge_{{ candidate.id }}"
+                 style="display:none;">
+              <span class="k-pill pill-approved">✓ Selected</span>
+            </div>
+          </div>
+
+        </div>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex gap-3 align-items-center">
+    <button type="submit" class="btn btn-kepler" id="submitBtn" disabled>
+      🗳️ Submit Vote
+    </button>
+    <span class="small-muted" id="selectHint">Select a candidate above to vote</span>
+  </div>
+</form>
+
+<script>
+function selectCandidate(id) {
+  // Unselect all
+  document.querySelectorAll('.candidate-card').forEach(card => {
+    card.style.borderColor = 'transparent';
+    card.style.background = '';
+  });
+  document.querySelectorAll('.selected-badge').forEach(b => b.style.display = 'none');
+
+  // Select clicked
+  const radio = document.getElementById(id);
+  radio.checked = true;
+  const card = radio.nextElementSibling;
+  card.style.borderColor = 'var(--kepler-blue)';
+  card.style.background = 'var(--kepler-blue-light)';
+  document.getElementById('badge_' + id.replace('candidate_', '')).style.display = 'block';
+
+  // Enable button
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('selectHint').style.display = 'none';
+}
+</script>
+
+{% endblock %}

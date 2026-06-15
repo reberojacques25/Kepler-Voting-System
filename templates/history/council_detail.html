@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="mb-3">
+  <a href="{% url 'history:guild_history' %}" class="btn btn-outline-kepler btn-sm">
+    ← Back to Guild History
+  </a>
+</div>
+
+<!-- Header -->
+<div class="hero p-5 mb-4">
+  <span class="k-pill pill-blue mb-2 d-inline-block">{{ election.start_date|date:"Y" }}</span>
+  <h1 class="fw-800 mb-1" style="font-size:1.8rem; font-weight:800;">
+    {{ election.name }}
+  </h1>
+  <p class="small-muted mb-0">
+    {{ election.start_date|date:"M d, Y" }} — {{ election.end_date|date:"M d, Y" }}
+  </p>
+</div>
+
+<!-- Winners -->
+{% if winners %}
+<h2 class="section-title mb-3">Elected Council Members</h2>
+<div class="row g-4">
+  {% for winner in winners %}
+  <div class="col-md-6">
+    <div class="kepler-card p-4 h-100">
+
+      <!-- Position -->
+      <div class="small-muted mb-1"
+           style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
+        {{ winner.position.title }}
+      </div>
+
+      <!-- Candidate -->
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="candidate-avatar">{{ winner.candidate.full_name|first }}</div>
+        <div>
+          <div class="fw-700 fs-5">{{ winner.candidate.full_name }}</div>
+          <span class="k-pill pill-winner">🏆 Elected</span>
+        </div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="section-title mb-2" style="font-size:.9rem;">Achievements</div>
+      {% with achievements=winner.achievements.all %}
+      {% if achievements %}
+        {% for achievement in achievements %}
+        {% if achievement.status == 'approved' %}
+        <div class="achievement-card mb-2">
+          <div class="fw-600" style="font-size:.9rem;">{{ achievement.title }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">{{ achievement.description }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      {% else %}
+      <p class="small-muted" style="font-size:.85rem;">No achievements recorded for this term.</p>
+      {% endif %}
+      {% endwith %}
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="kepler-card p-4 text-center">
+  <p class="small-muted mb-0">No winners have been declared for this election yet.</p>
+</div>
+{% endif %}
+
+{% endblock %}

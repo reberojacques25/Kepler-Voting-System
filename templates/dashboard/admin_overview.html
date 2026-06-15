@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}" class="active">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-4">
+      <h1 class="section-title mb-1">Admin Overview</h1>
+      <div class="small-muted">Welcome back. Here is what is happening.</div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Students</div>
+          <div class="stat-number">{{ students_total }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">
+            {{ students_verified }} verified · {{ students_blocked }} blocked
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Elections</div>
+          <div class="stat-number">{{ elections_total }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">Total elections created</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Votes Cast</div>
+          <div class="stat-number">{{ votes_total }}</div>
+          <div class="small-muted mt-1" style="font-size:.82rem;">Across all elections</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Cohort Confirmations -->
+    {% with pending_cohorts=pending_cohort_students %}
+    {% if pending_cohorts %}
+    <div class="kepler-card p-4 mb-4" style="border-left:4px solid var(--kepler-blue);">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <div class="fw-700">⏳ Pending Cohort Confirmations</div>
+          <div class="small-muted" style="font-size:.82rem;">
+            {{ pending_cohorts.count }} student{{ pending_cohorts.count|pluralize }}
+            waiting for cohort confirmation
+          </div>
+        </div>
+        <a href="{% url 'dashboard:admin_students' %}"
+           class="btn btn-outline-kepler btn-sm">View All</a>
+      </div>
+      <div class="row g-2">
+        {% for student in pending_cohorts|slice:":6" %}
+        <div class="col-md-6">
+          <div class="card-soft p-3 d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <div class="fw-600" style="font-size:.9rem;">
+                {{ student.get_full_name|default:student.email }}
+              </div>
+              <div class="small-muted" style="font-size:.78rem;">
+                {{ student.student_id }} → <span class="fw-600">{{ student.cohort.name }}</span>
+              </div>
+            </div>
+            <button class="btn btn-green btn-sm"
+                    onclick="confirmCohort({{ student.id }}, this)">Confirm</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <a href="{% url 'dashboard:admin_students' %}" class="text-decoration-none">
+          <div class="card-blue p-3 rounded-3 text-center">
+            <div style="font-size:1.5rem;">👥</div>
+            <div class="fw-600 mt-1" style="font-size:.9rem;">Manage Students</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3">
+        <a href="{% url 'dashboard:admin_elections' %}" class="text-decoration-none">
+          <div class="card-green p-3 rounded-3 text-center">
+            <div style="font-size:1.5rem;">🗳️</div>
+            <div class="fw-600 mt-1" style="font-size:.9rem;">Manage Elections</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3">
+        <a href="{% url 'dashboard:admin_candidates' %}" class="text-decoration-none">
+          <div class="card-blue p-3 rounded-3 text-center">
+            <div style="font-size:1.5rem;">🙋</div>
+            <div class="fw-600 mt-1" style="font-size:.9rem;">Review Applications</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3">
+        <a href="{% url 'dashboard:admin_campaigns' %}" class="text-decoration-none">
+          <div class="card-green p-3 rounded-3 text-center">
+            <div style="font-size:1.5rem;">📣</div>
+            <div class="fw-600 mt-1" style="font-size:.9rem;">Review Campaigns</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Elections Summary -->
+    <div class="section-title mb-3">Elections Summary</div>
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Election</th>
+            <th>Status</th>
+            <th>Positions</th>
+            <th>Votes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in summaries %}
+          <tr>
+            <td class="fw-600">{{ s.election.name }}</td>
+            <td>
+              {% if s.open %}<span class="k-pill pill-open">🟢 Open</span>
+              {% elif s.closed %}<span class="k-pill pill-closed">⚫ Closed</span>
+              {% else %}<span class="k-pill pill-upcoming">🟡 Upcoming</span>{% endif %}
+            </td>
+            <td><span class="k-pill pill-blue">{{ s.election.positions.count }}</span></td>
+            <td class="fw-600">{{ s.votes }}</td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                <a href="{% url 'dashboard:admin_election_manage' s.election.id %}"
+                   class="btn btn-kepler btn-sm">⚙️ Manage</a>
+                <a href="{% url 'elections:results' s.election.id %}"
+                   class="btn btn-outline-kepler btn-sm">Results</a>
+                <a href="{% url 'dashboard:admin_election_edit' s.election.id %}"
+                   class="btn btn-outline-kepler btn-sm">Edit</a>
+                <form method="POST"
+                      action="{% url 'dashboard:admin_election_delete' s.election.id %}"
+                      onsubmit="return confirm('Delete this election and all its data?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-soft btn-sm">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center py-4 small-muted">
+              No elections yet.
+              <a href="{% url 'dashboard:admin_election_create' %}">Create your first election</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmCohort(studentId, btn) {
+  fetch(`/dashboard/admin/students/${studentId}/toggle/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'action=confirm_cohort'
+  })
+  .then(r => r.json())
+  .then(() => {
+    btn.closest('.card-soft').style.opacity = '0.4';
+    btn.textContent = '✓ Confirmed';
+    btn.disabled = true;
+  });
+}
+</script>
+
+{% endblock %}

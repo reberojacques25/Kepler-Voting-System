@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- Election Header -->
+<div class="hero p-4 p-md-5 mb-4">
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div>
+      <div class="d-flex gap-2 mb-2">
+        {% if election.is_open %}
+          <span class="k-pill pill-open">🟢 Voting Open</span>
+        {% elif election.is_closed %}
+          <span class="k-pill pill-closed">⚫ Voting Closed</span>
+        {% else %}
+          <span class="k-pill pill-upcoming">🟡 Upcoming</span>
+        {% endif %}
+        {% if election.allow_live_results %}
+          <span class="k-pill pill-green">Live Results On</span>
+        {% endif %}
+      </div>
+      <h1 class="fw-800 mb-1" style="font-size:1.8rem;">{{ election.name }}</h1>
+      {% if election.description %}
+      <p class="small-muted mb-2">{{ election.description }}</p>
+      {% endif %}
+      <div class="small-muted" style="font-size:.85rem;">
+        {{ election.start_at|date:"M d, Y H:i" }} →
+        {{ election.end_at|date:"M d, Y H:i" }}
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'elections:campaign_browse' election.id %}"
+         class="btn btn-outline-kepler btn-sm">📣 View Campaigns</a>
+      {% if election.is_closed or election.allow_live_results %}
+      <a href="{% url 'elections:results' election.id %}"
+         class="btn btn-kepler btn-sm">📊 Results</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{% if 'error' in message.tags %}danger{% elif 'success' in message.tags %}success{% else %}info{% endif %} py-2 mb-3">
+  {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Positions -->
+<div class="section-title mb-3">Positions</div>
+
+{% if positions_with_eligibility %}
+<div class="row g-3">
+  {% for item in positions_with_eligibility %}
+  <div class="col-md-6">
+    <div class="kepler-card p-4 h-100">
+
+      <!-- Position title -->
+      <div class="fw-700 fs-5 mb-1">{{ item.position.title }}</div>
+      {% if item.position.description %}
+      <div class="small-muted mb-2" style="font-size:.85rem;">
+        {{ item.position.description }}
+      </div>
+      {% endif %}
+
+      <!-- Who votes -->
+      <div class="mb-3">
+        <span class="k-pill pill-closed" style="font-size:.75rem;">
+          🗳️
+          {% if item.position.voting_scope == 'all' %}
+            Whole College Votes
+          {% else %}
+            {% for c in item.position.allowed_cohorts.all %}
+              {{ c.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            Only
+          {% endif %}
+        </span>
+      </div>
+
+      <!-- Candidates count -->
+      <div class="small-muted mb-3" style="font-size:.82rem;">
+        {{ item.position.candidates.count }} approved candidate{{ item.position.candidates.count|pluralize }}
+      </div>
+
+      <!-- Action button -->
+      {% if not request.user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}" class="btn btn-outline-kepler btn-sm">
+          Login to Vote
+        </a>
+      {% elif item.already_voted %}
+        <span class="k-pill pill-approved">✓ You voted for this position</span>
+      {% elif not election.is_open %}
+        {% if election.is_closed %}
+          <span class="k-pill pill-closed">Voting closed</span>
+        {% else %}
+          <span class="k-pill pill-upcoming">Voting not open yet</span>
+        {% endif %}
+      {% elif item.can_vote %}
+        <a href="{% url 'elections:vote_position' election.id item.position.id %}"
+           class="btn btn-kepler btn-sm">
+          🗳️ Vote Now
+        </a>
+      {% else %}
+        <div class="small-muted" style="font-size:.82rem;">
+          {% if not request.user.is_email_verified %}
+            ✗ Verify your email to vote
+          {% elif not request.user.can_vote %}
+            ✗ Your voting access is blocked
+          {% elif not request.user.cohort %}
+            ✗ No cohort assigned — contact admin
+          {% elif not request.user.is_cohort_confirmed %}
+            ✗ Cohort not confirmed by admin yet
+          {% else %}
+            ✗ Not eligible for this position
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="kepler-card p-5 text-center">
+  <div style="font-size:3rem;">📋</div>
+  <h5 class="fw-700 mt-3">No positions yet</h5>
+  <p class="small-muted">Positions will appear here once admin adds them.</p>
+</div>
+{% endif %}
+
+{% endblock %}

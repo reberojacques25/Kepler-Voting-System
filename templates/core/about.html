@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kepler-card p-4 p-md-5 bg-white">
+  <h2 class="fw-bold mb-2">About this system</h2>
+  <p class="small-muted mb-4">
+    This web app supports Kepler College Kigali student guild elections with secure voter verification,
+    role-based access, and transparent aggregated results.
+  </p>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card-soft p-4 h-100">
+        <div class="fw-bold mb-2">Students</div>
+        <ul class="small-muted mb-0">
+          <li>Sign up using Email + Student ID</li>
+          <li>Email verification required</li>
+          <li>Vote once per position per election</li>
+          <li>View aggregated results only</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card-soft p-4 h-100">
+        <div class="fw-bold mb-2">Admins</div>
+        <ul class="small-muted mb-0">
+          <li>Create elections, positions, candidates, campaigns</li>
+          <li>Block/unblock students from voting</li>
+          <li>View votes and generate reports</li>
+          <li>Enable/disable live results</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

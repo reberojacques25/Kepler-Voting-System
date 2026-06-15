@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="sidebar-title">Admin Panel</div>
+    <a href="{% url 'dashboard:admin_overview' %}">📊 Overview</a>
+    <a href="{% url 'dashboard:admin_students' %}">👥 Students</a>
+    <a href="{% url 'dashboard:admin_cohorts' %}">🎓 Cohorts</a>
+    <div class="sidebar-title">Elections</div>
+    <a href="{% url 'dashboard:admin_elections' %}" class="active">🗳️ Elections</a>
+    <a href="{% url 'dashboard:admin_candidates' %}">🙋 Candidates</a>
+    <a href="{% url 'dashboard:admin_campaigns' %}">📣 Campaigns</a>
+    <div class="sidebar-title">Results</div>
+    <a href="{% url 'dashboard:admin_elections' %}">🏆 Declare Winners</a>
+    <a href="{% url 'dashboard:admin_achievements' %}">🌟 Achievements</a>
+    <a href="{% url 'dashboard:admin_analytics' %}">📈 Analytics</a>
+  </div>
+  <div class="admin-content">
+    <div class="mb-3">
+      <a href="{% url 'dashboard:admin_election_manage' election.id %}"
+         class="btn btn-outline-kepler btn-sm">← Back to {{ election.name }}</a>
+    </div>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="section-title mb-1">Application Fields</h1>
+        <div class="small-muted">
+          {{ position.title }} — questions students answer when applying
+        </div>
+      </div>
+      <a href="{% url 'dashboard:admin_field_create' election.id position.id %}"
+         class="btn btn-kepler">+ Add Question</a>
+    </div>
+    {% if fields %}
+    <div class="kepler-card p-0 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Question</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for field in fields %}
+          <tr>
+            <td class="small-muted">{{ field.order }}</td>
+            <td>
+              <div class="fw-600">{{ field.label }}</div>
+              {% if field.help_text %}
+              <div class="small-muted" style="font-size:.8rem;">{{ field.help_text }}</div>
+              {% endif %}
+            </td>
+            <td><span class="k-pill pill-blue">{{ field.get_field_type_display }}</span></td>
+            <td>
+              {% if field.is_required %}
+              <span class="k-pill pill-approved">Yes</span>
+              {% else %}
+              <span class="k-pill pill-closed">Optional</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'dashboard:admin_field_edit' election.id position.id field.id %}"
+                   class="btn btn-outline-kepler btn-sm">Edit</a>
+                <form method="POST"
+                      action="{% url 'dashboard:admin_field_delete' election.id position.id field.id %}"
+                      onsubmit="return confirm('Delete this question?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-soft btn-sm">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="kepler-card p-5 text-center">
+      <div style="font-size:2.5rem;">❓</div>
+      <h5 class="fw-700 mt-3">No questions yet</h5>
+      <p class="small-muted">
+        Add questions students must answer when applying for this position.
+      </p>
+      <a href="{% url 'dashboard:admin_field_create' election.id position.id %}"
+         class="btn btn-kepler">+ Add First Question</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

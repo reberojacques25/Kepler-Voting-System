@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="hero p-4 mb-4">
+  <h1 class="fw-800 mb-1" style="font-size:1.8rem;">Open Positions</h1>
+  <p class="small-muted mb-0">
+    Browse positions you can apply to run for.
+    Submit your application and wait for admin approval.
+  </p>
+</div>
+<div class="mb-3">
+  <a href="{% url 'elections:my_applications' %}"
+     class="btn btn-outline-kepler btn-sm">📋 My Applications</a>
+</div>
+{% if elections_with_positions %}
+  {% for item in elections_with_positions %}
+  <div class="mb-4">
+    <div class="section-title mb-3">
+      🗳️ {{ item.election.name }}
+      <span class="k-pill pill-blue ms-2" style="font-size:.75rem;">
+        {{ item.election.start_at|date:"M d, Y" }} → {{ item.election.end_at|date:"M d, Y" }}
+      </span>
+    </div>
+    <div class="row g-3">
+      {% for pd in item.positions %}
+      <div class="col-md-6">
+        <div class="kepler-card p-4 h-100">
+          <div class="fw-700 fs-5 mb-1">{{ pd.position.title }}</div>
+          {% if pd.position.description %}
+          <div class="small-muted mb-2">{{ pd.position.description }}</div>
+          {% endif %}
+          <div class="mb-3">
+            <span class="k-pill pill-closed" style="font-size:.75rem;">
+              🗳️ Votes from:
+              {% if pd.position.voting_scope == 'all' %}Whole College
+              {% else %}
+                {% for c in pd.position.allowed_cohorts.all %}
+                  {{ c.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              {% endif %}
+            </span>
+          </div>
+          {% if pd.application %}
+            {% if pd.application.status == 'pending' %}
+            <div class="card-blue p-2 rounded-3 small-muted">
+              ⏳ Application submitted — pending admin review
+            </div>
+            {% elif pd.application.status == 'approved' %}
+            <div class="card-green p-2 rounded-3">
+              <span class="fw-600">✓ Approved — you are a candidate!</span>
+            </div>
+            {% else %}
+            <div class="kepler-card p-2" style="border-left:4px solid #c62828;">
+              <span class="small-muted">✗ Application rejected</span>
+            </div>
+            {% endif %}
+          {% elif not pd.can_apply %}
+          <div class="kepler-card p-2 rounded-3"
+               style="border-left:4px solid var(--kepler-blue);">
+            <div class="small-muted" style="font-size:.82rem;">
+              👁️ You can follow this election but cannot apply
+            </div>
+            <div class="small-muted" style="font-size:.78rem;margin-top:.25rem;">
+              {{ pd.restriction_reason }}
+            </div>
+          </div>
+          {% else %}
+          <a href="{% url 'elections:apply_position' item.election.id pd.position.id %}"
+             class="btn btn-kepler btn-sm">Apply for this Position</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="kepler-card p-5 text-center">
+  <div style="font-size:3rem;">📋</div>
+  <h5 class="fw-700 mt-3">No open positions right now</h5>
+  <p class="small-muted">
+    Check back later — admin will open positions when applications are ready.
+  </p>
+</div>
+{% endif %}
+{% endblock %}
