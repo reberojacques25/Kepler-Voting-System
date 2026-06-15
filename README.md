@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Kepler Student Guild Voting System (Django)
 
 A role-based online voting platform for Kepler College Kigali (Rwanda) with:
@@ -52,3 +53,6 @@ If you ran `migrate` before configuring the custom user model, delete the old da
 rm -f db.sqlite3
 python manage.py migrate
 ```
+=======
+# Kepler-Voting-System
+>>>>>>> e0c7ff561b2318d306ebecee72eea627c0b61c38
