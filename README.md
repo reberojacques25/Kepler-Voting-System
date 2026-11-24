@@ -1,58 +1,91 @@
-<<<<<<< HEAD
-# Kepler Student Guild Voting System (Django)
+# Kepler Student Guild Voting System
 
-A role-based online voting platform for Kepler College Kigali (Rwanda) with:
-- Student sign-up using **Email + Student ID** (both unique)
-- **Email verification** before access
-- Admin can **block/unblock** students from voting
-- Elections, positions, candidates, campaigns
-- Voting (one vote per student per position per election)
-- Results + live score (optional) + admin reports
-- Clean Bootstrap 5 UI
+An online voting platform for the Kepler College (Kigali, Rwanda) student guild elections, built with Django.
 
-## 1) Setup (Ubuntu/Linux)
+## Features
+
+**Students**
+- Sign up with email + student ID (both unique), verify by email, log in with either
+- Browse elections, candidates and campaign posts
+- Apply to run for open positions (admin-defined application questions)
+- Approved candidates publish campaign posts (moderated)
+- Vote once per position; results shown after close (or live, if enabled)
+- Winners submit achievements to the public Guild History
+
+**Admins** (`/dashboard/admin/`)
+- Manage elections, positions, application forms and cohorts
+- Restrict who can see / vote in an election or position by cohort
+- Review applications, campaign posts and achievements
+- Verify, block and unblock students; confirm cohorts
+- Declare winners, view analytics, export results as CSV or PDF
+
+## Run locally
+
+Needs Python 3.11+.
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Open: http://127.0.0.1:8000
+Open http://127.0.0.1:8000. With no configuration the app runs in debug mode,
+uses SQLite, and prints verification emails to the terminal instead of sending them.
 
-## 2) Email verification (development)
+Run the tests:
 
-By default, the app uses Django's console email backend, which prints emails in the terminal.
+```bash
+python manage.py test
+```
 
-To send real emails, update `kepler_voting/settings.py` (EMAIL_* settings).
+## Deploy
 
-## 3) Create an election (Admin)
+The app reads all production settings from environment variables; see
+[`.env.example`](.env.example) for the full list.
 
-Go to `/admin/` and create:
-1. Election
-2. Positions (linked to election)
-3. Candidates (linked to position + election) and set status to **Approved**
+### Option A — Render (one click)
 
-Then login as a student and vote.
+1. Push this repo to GitHub.
+2. In Render: **New → Blueprint**, select the repo. `render.yaml` creates the web
+   service and a PostgreSQL database and generates `DJANGO_SECRET_KEY`.
+3. In the service's **Environment** tab fill in `SITE_URL`, `DJANGO_ADMIN_EMAIL`,
+   `DJANGO_ADMIN_PASSWORD` and the `EMAIL_*` values.
+4. Deploy. The build runs `build.sh` (install → collectstatic → migrate → create admin).
 
-## 4) Notes
-- Students can view **aggregated results only**.
-- Raw vote records are admin-only.
-- Admin can enable/disable live results per election.
+> **Free-tier limits:** the free database expires after 30 days, the app sleeps
+> when idle (first request takes ~1 min), and uploaded photos are lost on each
+> redeploy because there is no persistent disk. For the real election use a paid
+> instance with a disk mounted at `DJANGO_MEDIA_ROOT`, or move uploads to cloud storage.
 
+### Option B — any other host (Railway, a VPS, PythonAnywhere…)
+
+1. Set the variables from `.env.example`.
+2. Run `./build.sh` on each release.
+3. Start the app with the command in `Procfile`:
+   `gunicorn kepler_voting.wsgi:application`
+
+### Email
+
+Sign-up verification and password reset need a real SMTP account in production.
+For Gmail/Google Workspace, use an [app password](https://support.google.com/accounts/answer/185833)
+with `EMAIL_HOST=smtp.gmail.com`.
+
+## Project layout
+
+```
+kepler_voting/     settings, URLs, WSGI
+apps/accounts/     custom user (email + student ID), sign-up, verification, login
+apps/elections/    elections, positions, applications, campaigns, voting, results
+apps/dashboard/    student dashboard + admin dashboard, analytics, exports
+apps/history/      public guild history (past councils + achievements)
+apps/core/         home / about pages
+templates/, static/
+```
 
 ## Troubleshooting
 
-### "no such table: accounts_user"
-If you ran `migrate` before configuring the custom user model, delete the old database and migrate again:
-
-```bash
-rm -f db.sqlite3
-python manage.py migrate
-```
-=======
-# Kepler-Voting-System
->>>>>>> e0c7ff561b2318d306ebecee72eea627c0b61c38
+**`no such table: accounts_user`** — the local database was created before the
+custom user model. Delete `db.sqlite3` and run `python manage.py migrate` again.
