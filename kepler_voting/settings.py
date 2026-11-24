@@ -149,6 +149,13 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587") or "587")
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "15"))
+
+# If SMTP is selected but no server is configured yet, log emails instead of
+# crashing sign-up with a connection error. Verification links then appear in
+# the server logs, and admins can verify students from the dashboard.
+if EMAIL_BACKEND.endswith("smtp.EmailBackend") and not EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 SIGNING_SALT = os.environ.get("DJANGO_SIGNING_SALT", "kepler-voting-email-verify")
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
