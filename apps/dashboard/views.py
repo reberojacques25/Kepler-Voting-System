@@ -5,6 +5,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from apps.elections.models import (
     Election, Vote, Position, Candidate,
@@ -13,6 +14,23 @@ from apps.elections.models import (
 )
 from apps.accounts.models import User, Cohort
 from .permissions import staff_required
+
+
+def _parse_election_dates(start_at, end_at):
+    """Parse the form's datetime-local values as Kigali time.
+
+    Returns (start, end, error); error is None when the dates are valid.
+    """
+    start, end = parse_datetime(start_at or ''), parse_datetime(end_at or '')
+    if not start or not end:
+        return None, None, 'Please provide a valid start and end date/time.'
+    if timezone.is_naive(start):
+        start = timezone.make_aware(start)
+    if timezone.is_naive(end):
+        end = timezone.make_aware(end)
+    if end <= start:
+        return None, None, 'The election must end after it starts.'
+    return start, end, None
 
 
 @login_required
@@ -120,7 +138,10 @@ def admin_toggle_student(request, student_id):
             student.can_vote = True
             student.save()
         elif action == 'verify':
+            # Sign-up creates inactive accounts; verifying must also activate
+            # them, otherwise the student still cannot log in.
             student.is_email_verified = True
+            student.is_active = True
             student.save()
         elif action == 'confirm_cohort':
             student.is_cohort_confirmed = True
@@ -193,6 +214,12 @@ def admin_election_create(request):
         voting_scope = request.POST.get('voting_scope', 'all')
         visible_cohort_ids = request.POST.getlist('visible_to_cohorts')
         voting_cohort_ids = request.POST.getlist('voting_cohorts')
+        start_at, end_at, error = _parse_election_dates(start_at, end_at)
+        if error:
+            messages.error(request, error)
+            return render(request, 'dashboard/admin_election_form.html', {
+                'action': 'Create', 'election': None, 'cohorts': cohorts,
+            })
         election = Election.objects.create(
             name=name, description=description,
             start_at=start_at, end_at=end_at,
@@ -217,14 +244,22 @@ def admin_election_edit(request, election_id):
     if request.method == 'POST':
         election.name = request.POST.get('name')
         election.description = request.POST.get('description', '')
-        election.start_at = request.POST.get('start_at')
-        election.end_at = request.POST.get('end_at')
         election.is_published = request.POST.get('is_published') == 'on'
         election.allow_live_results = request.POST.get('allow_live_results') == 'on'
         election.visibility_scope = request.POST.get('visibility_scope', 'all')
         election.voting_scope = request.POST.get('voting_scope', 'all')
         visible_cohort_ids = request.POST.getlist('visible_to_cohorts')
         voting_cohort_ids = request.POST.getlist('voting_cohorts')
+        start_at, end_at, error = _parse_election_dates(
+            request.POST.get('start_at'), request.POST.get('end_at')
+        )
+        if error:
+            messages.error(request, error)
+            election.refresh_from_db()
+            return render(request, 'dashboard/admin_election_form.html', {
+                'action': 'Edit', 'election': election, 'cohorts': cohorts,
+            })
+        election.start_at, election.end_at = start_at, end_at
         election.save()
         election.visible_to_cohorts.set(visible_cohort_ids)
         election.voting_cohorts.set(voting_cohort_ids)

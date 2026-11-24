@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -121,7 +122,14 @@ def vote_position(request, election_id, position_id):
         candidate = get_object_or_404(
             Candidate, id=candidate_id, election=election, position=position, status='approved'
         )
-        Vote.objects.create(voter=request.user, election=election, position=position, candidate=candidate)
+        # A double-click or two open tabs can race past the "already voted" check
+        # above; the unique constraint on Vote is the real guard, so handle it.
+        try:
+            with transaction.atomic():
+                Vote.objects.create(voter=request.user, election=election, position=position, candidate=candidate)
+        except IntegrityError:
+            messages.info(request, f'You already voted for {position.title}.')
+            return redirect('elections:election_detail', election_id=election.id)
         messages.success(request, f'Vote recorded for {position.title}. Thank you!')
         return redirect('elections:election_detail', election_id=election.id)
     return render(request, 'elections/vote_position.html', {
